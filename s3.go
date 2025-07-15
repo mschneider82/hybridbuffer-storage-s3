@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/pkg/errors"
 	"schneider.vip/hybridbuffer/storage"
 )
 
@@ -50,10 +49,10 @@ func WithTimeout(timeout time.Duration) Option {
 // newBackend creates a new S3-based storage backend
 func newBackend(client S3Client, bucket string, opts ...Option) (*Backend, error) {
 	if client == nil {
-		return nil, errors.New("S3 client cannot be nil")
+		return nil, fmt.Errorf("S3 client cannot be nil")
 	}
 	if bucket == "" {
-		return nil, errors.New("bucket name cannot be empty")
+		return nil, fmt.Errorf("bucket name cannot be empty")
 	}
 
 	backend := &Backend{
@@ -76,7 +75,7 @@ func (s *Backend) Create() (io.WriteCloser, error) {
 	// Generate unique key
 	key, err := s.generateKey()
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to generate S3 key")
+		return nil, fmt.Errorf("failed to generate S3 key: %w", err)
 	}
 	s.key = key
 
@@ -91,7 +90,7 @@ func (s *Backend) Create() (io.WriteCloser, error) {
 // Open implements StorageBackend
 func (s *Backend) Open() (io.ReadCloser, error) {
 	if s.key == "" {
-		return nil, errors.New("no object created yet")
+		return nil, fmt.Errorf("no object created yet")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), s.timeout)
@@ -104,7 +103,7 @@ func (s *Backend) Open() (io.ReadCloser, error) {
 
 	result, err := s.client.GetObject(ctx, input)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get S3 object")
+		return nil, fmt.Errorf("failed to get S3 object: %w", err)
 	}
 
 	return result.Body, nil
@@ -126,7 +125,7 @@ func (s *Backend) Remove() error {
 
 	_, err := s.client.DeleteObject(ctx, input)
 	if err != nil {
-		return errors.Wrap(err, "failed to delete S3 object")
+		return fmt.Errorf("failed to delete S3 object: %w", err)
 	}
 
 	return nil
@@ -193,7 +192,7 @@ func (w *s3WriteCloser) streamUpload() {
 
 	_, err := w.backend.client.PutObject(ctx, input)
 	if err != nil {
-		w.done <- errors.Wrap(err, "failed to upload to S3")
+		w.done <- fmt.Errorf("failed to upload to S3: %w", err)
 		return
 	}
 

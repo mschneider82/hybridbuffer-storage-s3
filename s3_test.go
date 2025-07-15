@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/pkg/errors"
 )
 
 // mockS3Client implements S3Client interface for testing
@@ -72,7 +71,7 @@ func (m *mockS3Client) GetObject(ctx context.Context, params *s3.GetObjectInput,
 	data, exists := m.objects[key]
 	m.mu.RUnlock()
 	if !exists {
-		return nil, errors.New("NoSuchKey: The specified key does not exist")
+		return nil, fmt.Errorf("NoSuchKey: The specified key does not exist")
 	}
 
 	return &s3.GetObjectOutput{
@@ -342,7 +341,7 @@ func TestS3Backend_S3Errors(t *testing.T) {
 
 	// Simulate S3 put error before writing
 	expectedKey := fmt.Sprintf("%s:%s", bucket, backend.key)
-	client.setError("put", expectedKey, errors.New("S3 put error"))
+	client.setError("put", expectedKey, fmt.Errorf("S3 put error"))
 
 	testData := []byte("test data for error simulation")
 	writer.Write(testData)
@@ -366,7 +365,7 @@ func TestS3Backend_S3Errors(t *testing.T) {
 	expectedKey = fmt.Sprintf("%s:%s", bucket, backend.key)
 
 	// Simulate S3 get error
-	client.setError("get", expectedKey, errors.New("S3 get error"))
+	client.setError("get", expectedKey, fmt.Errorf("S3 get error"))
 	_, err = backend.Open()
 	if err == nil {
 		t.Fatal("Expected error during S3 get, got none")
@@ -374,7 +373,7 @@ func TestS3Backend_S3Errors(t *testing.T) {
 
 	// Simulate S3 delete error
 	client.setError("get", expectedKey, nil) // Clear get error
-	client.setError("delete", expectedKey, errors.New("S3 delete error"))
+	client.setError("delete", expectedKey, fmt.Errorf("S3 delete error"))
 	err = backend.Remove()
 	if err == nil {
 		t.Fatal("Expected error during S3 delete, got none")

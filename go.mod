@@ -6,7 +6,6 @@ toolchain go1.24.0
 
 require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.83.0
-	github.com/pkg/errors v0.9.1
 	schneider.vip/hybridbuffer/storage v1.0.6
 )
 
